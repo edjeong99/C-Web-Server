@@ -78,7 +78,7 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
     // Send it all!
     int rv = send(fd, response, response_length + content_length , 0);
 
-     printf("Send Response : %s\n ", response);
+     printf("Sent Response : %s\n ", response);
 
     if (rv < 0)
     {
@@ -153,12 +153,14 @@ snprintf(filepath, sizeof filepath, "%s/%s", SERVER_ROOT, request_path);
 filedata = file_load(filepath);
 
 if(filedata == NULL){
+    printf("get file filedata = NULL :");
     resp_404(fd);
     return;
 }
 
 char *mime_type = mime_type_get(filepath);
-
+printf("get file : %s\n ", mime_type);
+ 
 // we fetched a valid file, make sure we send it
 send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
 

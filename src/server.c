@@ -85,12 +85,16 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 void get_d20(int fd)
 {
     // Generate a random number between 1 and 20 inclusive
-
+    int rand_num = (rand() % (20)) + 1; 
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
 
     // Use send_response() to send it back as text/plain data
+    char rand_num_string[10];
+    int rand_num_size = sprintf(rand_num_string, "%d", rand_num);
+ printf("get_d20 : %s\n ", rand_num_string);
+    send_response(fd, "HTTP/1.1 200 OK", "text/plain", rand_num_string, rand_num_size);
 
     ///////////////////
     // IMPLEMENT ME! //
@@ -167,7 +171,7 @@ void handle_http_request(int fd, struct cache *cache)
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
- printf("request: %s\n ", request);
+ //printf("request: %s\n ", request);
     // Read the three components of the first request line
      char operation[10], endpoint[100], http_info[10];
      sscanf(request, "%s %s %s", operation, endpoint, http_info);
@@ -176,10 +180,15 @@ void handle_http_request(int fd, struct cache *cache)
      
 
     // If GET, handle the get endpoints
-    if (strcmp(operation, "GET")){
+    if (strcmp(operation, "GET") == 0){
          printf("GET operation executing\n");
-  
-         get_file(fd, cache, endpoint);
+      if (strcmp(endpoint, "/d20") == 0){
+          get_d20(fd);
+
+          }
+        else{
+             get_file(fd, cache, endpoint);
+        }
     }
     //    Check if it's /d20 and handle that special case
     //    Otherwise serve the requested file by calling get_file()

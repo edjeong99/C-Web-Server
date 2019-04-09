@@ -60,18 +60,26 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
     ///////////////////
 
     // current time
-    time_t rawtime;
-    time(&rawtime);
-
+    
+    time_t t = time(NULL); //Unix timestamp
+    
 
     // put HTTP response into response.
     int response_length = sprintf(response,
-        "%s\n Connection: close\n Content-Length: %d\n Content-Type: %s\n Date: %s\n", header, content_length, content_type, asctime(localtime(&rawtime)));
+        "%s\"n"
+        "Date: %s"
+        "Connection: close\n "
+        "Content-Length: %d\n"
+        "Content-Type: %s\n",
+         header, asctime(gmtime(&t)),content_length, content_type );
   
+     memcpy(response + response_length, body, content_length);  
+
     // Send it all!
-    int rv = send(fd, response, response_length, 0);
- printf("Send Response : %s\n ", response);
- 
+    int rv = send(fd, response, response_length + content_length , 0);
+
+     printf("Send Response : %s\n ", response);
+
     if (rv < 0)
     {
         perror("send");
@@ -137,6 +145,25 @@ void get_file(int fd, struct cache *cache, char *request_path)
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
+
+char filepath[4096];
+struct file_data *filedata;
+
+snprintf(filepath, sizeof filepath, "%s/%s", SERVER_ROOT, request_path);
+filedata = file_load(filepath);
+
+if(filedata == NULL){
+    resp_404(fd);
+    return;
+}
+
+char *mime_type = mime_type_get(filepath);
+
+// we fetched a valid file, make sure we send it
+send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
+
+// free the file data struct after it's been sent
+file_free(filedata);
 }
 
 /**
@@ -174,21 +201,21 @@ void handle_http_request(int fd, struct cache *cache)
     ///////////////////
  //printf("request: %s\n ", request);
     // Read the three components of the first request line
-     char operation[10], endpoint[100], http_info[10];
-     sscanf(request, "%s %s %s", operation, endpoint, http_info);
+     char request_type[8], request_path[1024], http_info[10];
+     sscanf(request, "%s %s %s", request_type, request_path, http_info);
 
-     printf("operation: %s\n endpoint: %s\n http_info: %s\n",operation, endpoint,http_info);
+     printf("request_type: %s\n request_path: %s\n http_info: %s\n",request_type, request_path,http_info);
      
 
     // If GET, handle the get endpoints
-    if (strcmp(operation, "GET") == 0){
+    if (strcmp(request_type, "GET") == 0){
          printf("GET operation executing\n");
-      if (strcmp(endpoint, "/d20") == 0){
+      if (strcmp(request_path, "/d20") == 0){
           get_d20(fd);
 
           }
         else{
-             get_file(fd, cache, endpoint);
+             get_file(fd, cache, request_path);
         }
     }
     //    Check if it's /d20 and handle that special case

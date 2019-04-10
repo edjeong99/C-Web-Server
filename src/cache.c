@@ -125,6 +125,23 @@ void cache_put(struct cache *cache, char *path, char *content_type, void *conten
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
+ // create a new cache entry with arguments
+    struct cache_entry *new_cache_entry = alloc_entry(path, content_type, content, content_length);
+  
+
+    // if cache is full, delete hashtable content and free tail cache entry
+    if (cache->max_size == cache->cur_size){
+            hashtable_delete(cache->index, cache->tail->path);
+            free_entry(dllist_remove_tail(cache));
+            printf("Cache PUT - cache is Full\n");
+      
+    }
+     
+    // insert the new cache entry to the head of dllist
+    dllist_insert_head(cache, new_cache_entry);
+    cache->cur_size++;
+    hashtable_put(cache->index, path, new_cache_entry);
+    printf("Cache PUT - Completed\n");
 }
 
 /**

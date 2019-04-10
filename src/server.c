@@ -149,6 +149,14 @@ void get_file(int fd, struct cache *cache, char *request_path)
 char filepath[4096];
 struct file_data *filedata;
 
+    // first, check cache
+struct cache_entry * entry = cache_get(cache, request_path);
+if(entry){
+    send_response(fd, "HTTP/1.1 200 OK", entry->content_type, entry->content, entry->content_length);
+   printf("GET file Cache used\n");
+    return;
+}
+
 snprintf(filepath, sizeof filepath, "%s/%s", SERVER_ROOT, request_path);
 filedata = file_load(filepath);
 
@@ -159,10 +167,14 @@ if(filedata == NULL){
 }
 
 char *mime_type = mime_type_get(filepath);
-printf("get file : %s\n ", mime_type);
+printf("get file : mime = %s\n ", mime_type);
  
 // we fetched a valid file, make sure we send it
 send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
+
+// save the file in the cache
+cache_put(cache, request_path, mime_type, filedata->data, filedata->size);
+
 
 // free the file data struct after it's been sent
 file_free(filedata);
@@ -208,20 +220,23 @@ void handle_http_request(int fd, struct cache *cache)
 
      printf("request_type: %s\n request_path: %s\n http_info: %s\n",request_type, request_path,http_info);
      
+     //    Check if it's /d20 and handle that special case
+    if (strcmp(request_path, "/d20") == 0){
+          get_d20(fd);
+        return;
+    }
+   
+   
 
-    // If GET, handle the get endpoints
+  //    Otherwise serve the requested file by calling get_file()
+   // If GET, get file data and send it as response
     if (strcmp(request_type, "GET") == 0){
          printf("GET operation executing\n");
-      if (strcmp(request_path, "/d20") == 0){
-          get_d20(fd);
-
-          }
-        else{
-             get_file(fd, cache, request_path);
-        }
+         get_file(fd, cache, request_path);
+       
     }
-    //    Check if it's /d20 and handle that special case
-    //    Otherwise serve the requested file by calling get_file()
+  
+  
 
     // (Stretch) If POST, handle the post request
 }
